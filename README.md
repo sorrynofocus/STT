@@ -29,6 +29,7 @@ In this project, I’ll be separating new features into individual branches to m
 - **Azure OpenAI Service**: For natural language understanding and generating responses.
 - **.NET9.0**: Application framework.
 - **Newtonsoft.Json**: For configuration management and JSON serialization.
+- **Azure Language SDK**: For interacting with Azure services; sentiment analysis, keyphrase extraction. (Added 2025/11/09)
 
 
 ## Architecture Overview
@@ -89,6 +90,12 @@ Finally, in the application, you'll need to configure the keys and endpoints for
 2. **Deploy a Model**:
  - In the Azure OpenAI resource, deploy a model like `gpt-4-mini` or `gpt-3.5-turbo`.
  - Note the deployment name for use in the application.
+
+ ### Create Language Service Resource (Added 2025/11/09)
+1. **Create an Azure Language Resource**:
+ - Go to the [Azure Portal](https://portal.azure.com).
+ - Search for "Language" and create a new Language Service resource.
+ - Note the **key**, **region**, and **endpoint**.
 
 <P>
 
@@ -455,6 +462,7 @@ Finally... Build.
 |---------|-------------|
 | `main` | README.md (your project intro, branching policy, etc.) |
 | `feature/winters/init-working-commit` | Initial commit, first working build |
+| `feature/winters/lang-srvc-analysis` | Language service analysis -this branch is from `feature/winters/init-working-commit` |
 | `develop/winters/*` | Active development branch (will update this soon) |
 
 
