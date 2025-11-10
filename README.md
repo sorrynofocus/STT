@@ -29,6 +29,7 @@ In this project, I’ll be separating new features into individual branches to m
 - **Azure OpenAI Service**: For natural language understanding and generating responses.
 - **.NET9.0**: Application framework.
 - **Newtonsoft.Json**: For configuration management and JSON serialization.
+- **Azure Language SDK**: For interacting with Azure services; sentiment analysis, keyphrase extraction. (Added 2025/11/09)
 
 
 ## Architecture Overview
@@ -36,7 +37,7 @@ In this project, I’ll be separating new features into individual branches to m
 ![Pipeline](./img/pipeline/pipelineflow-2025-01-13-1802.png)
 
 ### Current Pipeline Flow
-This is _somewhat_ similar to the image above, but with some differences. The current flow is as follows:
+This is _somewhat_ similar to the image above, but with some differences. The start of the project's flow is as follows:
 
 1. **Speech-to-Text**:
 - The application captures audio input from the microphone.
@@ -60,6 +61,10 @@ This is _somewhat_ similar to the image above, but with some differences. The cu
 
 3. **Interrupt Handling**:
  - Allow users to interrupt the assistant's speech or processing by detecting new audio input and stopping current operations.
+
+4. **Sentiment Analysis and Keyphrase Extraction**:
+ - Integrate Azure Language SDK for advanced text analytics, including sentiment analysis and keyphrase extraction.
+
 
 
 ## Azure Setup
@@ -90,376 +95,26 @@ Finally, in the application, you'll need to configure the keys and endpoints for
  - In the Azure OpenAI resource, deploy a model like `gpt-4-mini` or `gpt-3.5-turbo`.
  - Note the deployment name for use in the application.
 
-<P>
+ ### Create Language Service Resource (Added 2025/11/09)
+1. **Create an Azure Language Resource**:
+ - Go to the [Azure Portal](https://portal.azure.com).
+ - Search for "Language" and create a new Language Service resource.
+ - Note the **key**, **region**, and **endpoint**.
 
-<details>
-<summary><strong>Create Azure Resources and Deploy model (Not for the faint of heart: All for the hardcore CLI users)   [click to expand]</strong></summary>
-
-
-This is an exhaustive way to building up thje Azure resources, so I've added a both TL;DR and In detail section. I also validated the commands. I should make a video on these steps. Learning the Azure CLI was done using CoPilot and trial and error. There was a _lotuverrors_!
-
-## Build Azure Resources and deploy model (TL;DR)
-
-_Create Resource Group:_
-
-```
-az group create --name rc_Group_001 --location westus --tags project=experimentation service=speech service=OpenAI
-```
-
-_Create Azure OpenAI Resource:_
-
-```
-az cognitiveservices account create  --name rc-AzureOpenAI-Foundry-002 --resource-group rc_Group_001  --kind AIServices  --sku S0  --location westus --tags service=OpenAI project=experimentation environment=development owner=team-ai
-```
-
-_Create Speech Services Resource:_
-
-```
-az cognitiveservices account create --name rc-SpeechService-001 --resource-group rc_Group_001  --kind SpeechServices  --sku F0 --location westus --tags service=speech project=experimentation environment=development owner=team-ai cost-center=8r0K3-422
-```
-
-_Deploy gpt-4o-mini model to Azure OpenAI Resource:_
-
-```
-az cognitiveservices account deployment create --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --deployment-name chat-gippity4o-mini  --model-name gpt-4o-mini --model-version 2024-07-18  --model-format OpenAI --sku-name Standard --sku-capacity 1
-```
-
-_Grab endpoint and keys for your resources:_
-
-```
-az cognitiveservices account show -g rc_Group_001 -n rc-SpeechService-001 --query "{endpoint:properties.endpoint, location:location}"
-az cognitiveservices account keys list -g rc_Group_001  -n rc-SpeechService-001
-```
-
-```
-az cognitiveservices account show -g rc_Group_001 -n rc-AzureOpenAI-Foundry-002 --query "{endpoint:properties.endpoint, location:location}"
-az cognitiveservices account keys list -g rc_Group_001  -n rc-AzureOpenAI-Foundry-002
-```
-
-
-
-## Build Azure Resources and deploy model, in detail
-
-### Step 1: Create the Resource Group
-
-```
-az group create --name rc_Group_001 --location westus --tags project=experimentation service=speech service=OpenAI
-```
-
-Verify:
-
-```
-az group show --name rc_Group_001 
-```
-
-
-
-  
-
-### Step 2a: Create Azure OpenAI Resource
-
-This method is the current (now legacy) to create a resournce in Azure portal. The new way if AI Foundry, but the AZ CLI doesn't support commands as of yet. 
-
-However, is this resource is created, it will surely show in both Portal and Foundry. Foundry will have it represented as a resource. Foundry (the new way) will reqwuire a project created and a resource within the project. 
-
-In this example, this is the method used until Azure CLI supports Foundry. Microsoft is really pushing this. 
-
-Note: 
-
-* The region `westus` will be used in this example.
-* `--identity-type` not used because we're not using managed identity in this example.
-* `--api-properties` not used because we're not setting any special properties in this example.
-* The `Kind` type when creating Foundry project is `AIFoundry`. The older method of creating Azure OpenAI resource (_this example) directly uses `AIServices` as the kind (see commands below that reference `AIServices`). 
-
-Let's continue...
-
-Find available SKUs in your region:
-
-  > Azure OpenAI (S0): This is a paid tier. Even idle deployments may incur charges depending on quota and throughput settings. There is no other option, by th way ^_^
-
-
-```
-az cognitiveservices account list-skus --kind AIServices --location westus
-```
-
-Create Azure OpenAI Resource
-
-```
-az cognitiveservices account create  --name rc-AzureOpenAI-Foundry-002 --resource-group rc_Group_001  --kind AIServices  --sku S0  --location westus --tags service=OpenAI project=experimentation environment=development owner=team-ai
-```
-
-
-Validate the service created:
-
-```
-az cognitiveservices account show --name rc-AzureOpenAI-Foundry-002 --resource-group rc_Group_001
-```
-
-Find the SKU of the Azure OpenAI resource you just created:
-
-```
-az cognitiveservices account show --name rc-AzureOpenAI-Foundry-002 --resource-group rc_Group_001 --query sku.name -o tsv
-```
-
-Verify if public network access is enabled:
-
-```
-az cognitiveservices account show  --name rc-AzureOpenAI-Foundry-002  --resource-group rc_Group_001  --query properties.publicNetworkAccess -o tsv
-```
-
-Get the endpoint and key:
-
-```
-for /f "tokens=*" %i in ('az cognitiveservices account show -g rc_Group_001 -n rc-AzureOpenAI-Foundry-002 --query properties.endpoint -o tsv') do set OPENAI_ENDPOINT=%i
-for /f "tokens=*" %i in ('az cognitiveservices account keys list -g rc_Group_001 -n rc-AzureOpenAI-Foundry-002 --query key1 -o tsv') do set OPENAI_KEY=%i
-echo OPENAI_ENDPOINT: %OPENAI_ENDPOINT% 
-echo OPENAI_KEY: %OPENAI_KEY%
-```
-
-  > If you prefer the AZ CLI, refer to the TL;DR section `Grab endpoint and keys for your resources`. This is used if you need automation in Windows terminal BATch scripts
-  
-  > Cost note: The account itself does not incur cost; deployments do. A Standard deployment (with capacity) bills hourly + tokens.
-
-
-### Step 2 (optional): Create Foundry project
-_Please read carefully! This is optional, but recommended in the future._
-
-At the moment, az CLI does not support foundry. You'll have to do it through the UI at `ai.azure.com`. If you don't want to create project, then creating Azure OpenAI resource directly is possible but the resource will be listed as a resource in Foundry but not part of any project.
-If you do go this route, then skip Step 2a above. Creating a Foundry project will also create a resource for you. This will eventually be the preferred method.
-
-Also, to note, creating a Foundry project and resource may not be accessible (deployment) through the AZ CLI at this time. The `Kind` type when creating Foundry project is `AIFoundry`. The older method of creating Azure OpenAI resource directly uses `AIServices` as the kind (see commands below that reference `AIServices`).
-
-- Select + Create New
-- Choose AI Foundry resource
-- In the create project dialogue window, enter "proj-001-grp-001" for the project name. 
-- Expand the `Advanced options`.
-
-Fill in the following:
-- Resource Group: rc_Group_001
-- Azure AI Foundry resource: rc-AzureOpenAI-Foundry-002
-- Subscription: {your subscription name}
-- Region: westus
-
-- Click Create
-
-  > Creating project and resources may take several minutes (typically about 3-5 minutes).
-
-  > Interacting with Foundry cannot be done at the time of this writing with AZ CLI. You must use the portal. 
-
-
-### Step 3: Create Speech Services Resource
-
-```
-az cognitiveservices account create --name rc-SpeechService-001 --resource-group rc_Group_001  --kind SpeechServices  --sku F0 --location westus --tags service=speech project=experimentation environment=development owner=team-ai cost-center=8r0K3-422
-```
-
-
-Validate speech service:
-
-```
-az cognitiveservices account show --name rc-SpeechService-001 --resource-group rc_Group_001
-```
-
-View network access:
-
-```
-az cognitiveservices account show   --name rc-SpeechService-001   --resource-group rc_Group_001   --query properties.publicNetworkAccess -o tsv
-```
-
-Get the endpoint and key:
-
-```
-for /f "tokens=*" %i in ('az cognitiveservices account show -g rc_Group_001 -n rc-SpeechService-001 --query properties.endpoint -o tsv') do set SPEECH_ENDPOINT=%i
-for /f "tokens=*" %i in ('az cognitiveservices account keys list -g rc_Group_001 -n rc-SpeechService-001 --query key1 -o tsv') do set SPEECH_KEY=%i
-echo SPEECH_ENDPOINT: %SPEECH_ENDPOINT%
-echo SPEECH_KEY: %SPEECH_KEY%
-```
-
-  > Billing: Speech bills per minute of audio processed. No idle cost.
-
-
-
-
-### Step 4: Deploy a GPT Model to Azure OpenAI (Provisioned input)
-
-Note: 
-`--name` must match the Cognitive Services resource name (`rc-AzureOpenAI-Foundry-002`)
-
-First... What can we deploy?
-
-```
-az cognitiveservices model list --location westus -o table
-```
-
-Let's filter and find _low-end models_ to deploy for our region. Look for both `turbo` and `mini` models (_mini are less costly_):
-
-```
-az cognitiveservices model list --location westus --query "map(&{Kind:kind, Sku:skuName, Name:name, Location:location, Version:model.version}, [?kind=='AIServices' && (contains(name, 'turbo') || contains(name, 'mini'))])" -o table
-```
-
-Hmmm... Interesting model to consider: `OpenAI.gpt-4o-mini.2024-07-18`
-
-IF you need to see MORE dedtails about the models, use this command:
-
-```
-az cognitiveservices model list --location westus --query "[?kind=='AIServices' && (contains(name, 'turbo') || contains(name, 'mini'))]"  -o jsonc
-```
-
-Check for model deployability?
-
-```
-az cognitiveservices model list --location westus  --query "[?kind=='AIServices' && contains(name, 'turbo')].[name, model.version, model.skus]" -o json
-```
-
-  > If a model has a non-empty model.skus including GlobalStandard, it can be deployed via CLI in this region.
-
-We can do this to filter for deployable models:
-
-```
-az cognitiveservices model list --location westus --query "[?model.skus && contains(join(' ', model.skus[].name), 'GlobalStandard') && contains(name, 'turbo') || contains(name, 'mini')].[name, model.version, model.skus]" 
-```
-
-Select `gpt-4o-mini` for this example.  :
-```
-    
-    Kind        SkuName    Name                                   Location
-    ----------  ---------  -------------------------------------  ----------
-    AIServices  S0         OpenAI.gpt-4o-mini.2024-07-18         WestUS
-```
-
-
-Deploy gpt-4o-mini to the Azure OpenAI resource created earlier:
-
-```
-az cognitiveservices account deployment create --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --deployment-name chat-gippity4o-mini  --model-name gpt-4o-mini --model-version 2024-07-18  --model-format OpenAI --sku-name Standard --sku-capacity 1
-```
-
-
-  > Model version is significant as we need to get the EXACT versionof the model.
-
-  > PTU note: --sku-capacity 1 allocates provisioned throughput (1 PTU). Delete the deployment when idle to avoid hourly charges.
-
-Finally,  verify the deployment:
-
-```
-az cognitiveservices account deployment show --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --deployment-name chat-gippity4o-mini  --query "{model:properties.model, sku:sku, state:properties.provisioningState}"
-```
-
-  > 'state' should be 'Succeeded' when deployment is complete.
-
-
- To get model details of the deployment:
-
-```
-az cognitiveservices account deployment show --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --deployment-name chat-gippity4o-mini --query properties.model -o json
-```
-_Note:_ Validate version, model format, and name.
-
-Using the above example, you can put it into table format:
-
-```
-az cognitiveservices account deployment list --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --query "[].{name:name, model:properties.model.name, version:properties.model.version, sku:sku.name, capacity:sku.capacity, state:properties.provisioningState}"  -o table
-```
-
-Clean up when you’re done (so hourly charges stop)
-
-```
-az cognitiveservices account deployment delete --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --deployment-name chat-gippity4o-mini
-```
-
-
-
-### Step 5: Validate Resources
-
-```
-az resource list --resource-group rc_Group_001 -o table
-```
-
-
-## Teardown everything with the following:
-
-### Delete the provisioned deployment when done
-
-```
-az cognitiveservices account deployment delete --resource-group rc_Group_001 --name rc-AzureOpenAI-Foundry-002 --deployment-name chat-gippity4o-mini
-```
-
-
-### Remove entire resource group and all resources
-
-```
-az group delete --name rc_Group_001 --yes --no-wait
-```
-
-**Finally! The hardcore stuff is done!**
-
----
-
-</details>
-
-<P>
 
 
 ## Application Build Instructions
 
 
-1. **Install Required Packages**:
-
-In the project directory, run the following commands to install the necessary NuGet packages, under the Nuget package manager console:
-
- ```
- dotnet add package Azure.AI.OpenAI
- dotnet add package Microsoft.CognitiveServices.Speech
- dotnet add package Newtonsoft.Json
- ```
-
-2. **Verify Installed Packages**:
- ```
- dotnet list package
- ```
-
-3. **Clear NuGet Cache and Restore**:
- Probably don't need this, _but_ just in case! 
- 
- ```
- dotnet nuget locals all --clear
- dotnet restore --force-evaluate --no-cache
- ```
-
-4. **Build the Application**:
-			
-  > Note:  Before building, this is where you configure your Azure Cognitive Services and Azure OpenAI keys and endpoints. This is done in `ApplicationConfig.cs` (just don't publish it in production). <BR><BR>Simply modify the following for defaults:
-
-```
-      RC_AZURE_OPEN_AI_KEY = "XXX", // Azure OpenAI key 
-      RC_AZURE_OPEN_AI_ENDPOINT = "XXX", // Azure OpenAI endpoint 
-      RC_AZURE_OPEN_AI_DEPLOYMENT = "XXX", // model deployment
-      RC_SPEECH_SERVICE_ENDPOINT = "XXX", // Azure Speech service endpoint
-      RC_SPEECH_SERVICE_KEY = "XXX", // Azure Speech service key
-      RC_SPEECH_SERVICE_REGION = "westus2", // Azure Speech service region
-```
-  > If you do not chase this method, then run the application, and configure the `appsettings.json` in your 
-`%APPDATA%` folder (APPDATA=C:\Users\{user}\AppData\Roaming\AppSettings.json). The configuration method is crude, but it works for demonstration purposes.
-
-
-Finally... Build. 
-
- ```
- dotnet build
- ```
-
-
+Under each branch will give details on building the project.
 
 ##  Active Branches
 | Branch | Description |
 |---------|-------------|
 | `main` | README.md (your project intro, branching policy, etc.) |
 | `feature/winters/init-working-commit` | Initial commit, first working build |
-| `develop/winters/*` | Active development branch (will update this soon) |
-
-
-
-
+| `feature/winters/lang-srvc-analysis` | Language service analysis -this branch is from `feature/winters/init-working-commit` |
+| -- | -- |
 
 
 
