@@ -3,9 +3,10 @@
  Purpose: Azure Cognitive Services
  Delivery: Speech to text project using C# 13.0 and .NET 9.0
 */
-using OpenAI.Chat;
 using Azure;
 using Azure.AI.OpenAI;          // AzureOpenAIClient, ChatClient, ChatMessage, not OpenAI but Azure OpenAI!
+using Azure.AI.TextAnalytics;
+using OpenAI.Chat;
 using System;
 using System.ClientModel;       // ApiKeyCredential  (note: this is *not* AzureKeyCredential)
 
@@ -15,26 +16,29 @@ namespace stt
     public sealed class AzureChatService
     {
         private readonly ChatClient _chat;
+        private readonly LanguageService _languageService;
 
-        public AzureChatService(ChatSettings s)
+        public AzureChatService(ChatSettings settings, LanguageService languageService)
         {
-            if (string.IsNullOrWhiteSpace(s.Endpoint)) throw new ArgumentException("Missing endpoint.");
-            if (string.IsNullOrWhiteSpace(s.ApiKey)) throw new ArgumentException("Missing API key.");
-            if (string.IsNullOrWhiteSpace(s.Deployment)) throw new ArgumentException("Missing deployment name.");
+            if (string.IsNullOrWhiteSpace(settings.Endpoint)) throw new ArgumentException("Missing endpoint.");
+            if (string.IsNullOrWhiteSpace(settings.ApiKey)) throw new ArgumentException("Missing API key.");
+            if (string.IsNullOrWhiteSpace(settings.Deployment)) throw new ArgumentException("Missing deployment name.");
 
-            AzureOpenAIClient? client = new AzureOpenAIClient(new Uri(s.Endpoint),
-                                                               new ApiKeyCredential(s.ApiKey)
+
+            AzureOpenAIClient? client = new AzureOpenAIClient(new Uri(settings.Endpoint),
+                                                               new ApiKeyCredential(settings.ApiKey)
                                                              );
-            _chat = client.GetChatClient(s.Deployment);
+            _chat = client.GetChatClient(settings.Deployment);
+
+            _languageService = languageService ?? throw new ArgumentNullException(nameof(languageService));
         }
 
         // This function sends messages to the chat model and returns the response text.
         // TODO: move out ChatCompletionOptions as parameters?
         [Notification("CompleteAsync()", " - Currently operational")]
-        public async Task<string> CompleteAsync(
-                                                IEnumerable<ChatMessage> messages,
-                                                ChatCompletionOptions? options = null,
-                                                CancellationToken ct = default
+        public async Task<string> CompleteAsync( IEnumerable<ChatMessage> messages,
+                                                 ChatCompletionOptions? options = null,
+                                                 CancellationToken ct = default
                                                 )
         {
             try
@@ -49,6 +53,21 @@ namespace stt
 
                 ClientResult<ChatCompletion>? resp = await _chat.CompleteChatAsync(messages, options, ct);
                 string? content = resp.Value.Content.LastOrDefault()?.Text;
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    // Example: Detect language
+                    string detectedLanguage = _languageService.DetectLanguage(content);
+                    Console.WriteLine($"Detected Language: {detectedLanguage}");
+
+                    // Example: Analyze sentiment
+                    DocumentSentiment sentiment = _languageService.AnalyzeSentiment(content);
+                    Console.WriteLine($"Sentiment: {sentiment.Sentiment}");
+
+                    // Example: Extract key phrases
+                    KeyPhraseCollection keyPhrases = _languageService.ExtractKeyPhrases(content);
+                    Console.WriteLine("Key Phrases: " + string.Join(", ", keyPhrases));
+                }
 
                 return (string.IsNullOrWhiteSpace(content) ? "(Empty response.)"
                         : content.Trim());

@@ -2,6 +2,7 @@
  CWinters / Thinkpad T15g Gen 1 / Arizona / AZ / USA
  Purpose: Azure Cognitive Services
  Delivery: Speech to text project using C# 13.0 and .NET 9.0
+ 
 */
 
 using System;

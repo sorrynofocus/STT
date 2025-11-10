@@ -34,15 +34,24 @@ namespace stt
             AudioConfig? audioConfig = BasicInputDeviceConfig.SetupMicInput();
 
             // Azure OpenAI setup
-            var chatSettings = new ChatSettings
+            ChatSettings chatSettings = new ChatSettings
             {
                 Endpoint    = settings.RC_AZURE_OPEN_AI_ENDPOINT ?? string.Empty,
                 Deployment  = settings.RC_AZURE_OPEN_AI_DEPLOYMENT ?? string.Empty,
-                ApiKey      = settings.RC_AZURE_OPEN_AI_KEY ?? string.Empty
+                ApiKey      = settings.RC_AZURE_OPEN_AI_KEY ?? string.Empty,
             };
 
+            // Language analysis service settings
+            LangSettings langSettings = new LangSettings
+            {
+                LangEndpoint = settings.RC_LANG_ANALYSIS_SERVICE_ENDPOINT ?? string.Empty,
+                LangApiKey   = settings.RC_LANG_ANALYSIS_SERVICE_KEY ?? string.Empty
+            };
+
+            LanguageService? langService = new LanguageService(langSettings);
+
             // Chat service settings
-            AzureChatService? chat = new AzureChatService( chatSettings); 
+            AzureChatService? chat = new AzureChatService( chatSettings, langService); 
 
             Console.WriteLine($"Endpoint: {settings.RC_AZURE_OPEN_AI_ENDPOINT}");
             Console.WriteLine($"Deployment: {settings.RC_AZURE_OPEN_AI_DEPLOYMENT}");
@@ -51,7 +60,7 @@ namespace stt
             // Trace recognition events, hooking to console
             SpeechProcessor.OnRecognized += (sender, recognizedText) =>
             {
-                Console.WriteLine($"[Event] Recognized: {recognizedText}");
+                Console.WriteLine($"\n[Event] Recognized: {recognizedText}");
             };
 
             // Run the integrated loop

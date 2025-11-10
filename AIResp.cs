@@ -3,6 +3,7 @@
  Purpose: Azure Cognitive Services. Using the Azure Cognitive
           Services Speech SDK and Azure OpenAI SDK.
  Delivery: Speech to text project using C# 13.0 and .NET 9.0
+
 */
 
 namespace stt
