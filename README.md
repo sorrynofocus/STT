@@ -100,7 +100,7 @@ flowchart TD
     K --> L[Done]
 ```
 
-![Pipeline](./img/pipeline/code-map.png)
+![Pipeline](./img/code-map.png)
 _code map_
 
 
