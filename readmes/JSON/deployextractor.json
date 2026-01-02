@@ -1,0 +1,9 @@
+{
+  "id": "deployextractor",
+  "toolName": "deployextractor",
+  "description": "Parses Confluence deployment tables into CSV format. Supports stage-only, production-only, or combined extraction workflows. Integrates with uv-based Python environment.",
+  "commandFormat": "create-deploycsv-from-input_txt.bat <page_id> [--stage] [--production]",
+  "parameters": "<page_id>: numeric Confluence ID; --stage: extract Stage table; --production: extract Production table",
+  "examples": "CMD: create-deploycsv-from-input_txt.bat 3625222145 --stage",
+  "keywords": ["confluence", "deploy", "extract", "csv", "release", "table"]
+}

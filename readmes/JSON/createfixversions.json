@@ -1,0 +1,9 @@
+{
+  "id": "createfixversions",
+  "toolName": "createfixversions",
+  "description": "Python tool that creates fixVersion entries for Keap PD release pages. Integrates with Jira API. Automates release version creation for weekly deploy trains.",
+  "commandFormat": "python createFixVersions.py --description \"<text>\" --release-date <YYYY-MM-DD> [--dryrun]",
+  "parameters": "--description: label for fixVersion; --release-date: ISO date; --dryrun: optional simulation",
+  "examples": "CMD: python createFixVersions.py --description \"Release to Production\" --release-date 2025-11-13",
+  "keywords": ["jira", "fixversion", "release", "production", "deploy", "python", "automation"]
+}

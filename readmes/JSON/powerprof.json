@@ -1,0 +1,42 @@
+{
+  "id": "powerprof",
+  "toolName": "powerprof",
+  "description": "PowerProf  -a windows power management tool. Supports sleep state control, RTC wake timers, and WiFi reconnection logic. Useful for validating and enterting S0/S3 sleep-wake cycles on a system.",
+  "commandFormat": "powerprof.exe --mode <s0|s3|s3> [--duration <seconds>] [--wifi-reconnect]",
+  "parameters": [
+  "--mode=<auto|modern|s3|s4> --test (sleep now, wake in 60s)",
+  "--mode=<auto|modern|s3|s4> <start> <end> (YYYY-MM-DD_HH:MM)",
+  "-h | --help (show help)",
+  "-d | --dump (dump system power capabilities)",
+  "-n | --hibernateoff (turn OFF hibernate S4)",
+  "-o | --hibernateon (turn ON hibernate S4)",
+  "-2 | --acimportantwaketimersonly (AC: Important wake timers only)",
+  "-1 | --acwaketimerson (AC: Enable wake timers)", 
+  "-e | --showsignon (show sign-on option)",
+  "-s | --enablesignon (enable sign-on on AC)",
+  "-q | --disablesignon (disable sign-on on AC)",
+  "-t | --enablesignondc (enable sign-on on DC)",
+  "-u | --disablesignondc (disable sign-on on DC)"
+  ],
+    "examples": [
+    {
+      "description": "Sleep now, wake in 60 seconds",
+      "command": "powerprof-test-app.exe --mode=auto --test"
+    },
+    {
+      "description": "Schedule sleep/wake between 00:15 and 00:20 on 2025-05-24",
+      "command": "powerprof-test-app.exe --mode=s3 2025-05-24_00:15 2025-05-24_00:20"
+    },
+    {
+      "description": "Enable hibernate support",
+      "command": "powerprof-test-app.exe --hibernateon"
+    },
+    {
+      "description": "Disable password prompt after wake (AC only)",
+      "command": "powerprof-test-app.exe --disablesignon"
+    }
+  ],
+  "keywords": ["power", "power prof","sleep", "wake timers","powerprofile", "s3", "s0", "rtc", "wifi", "automation"]
+}
+
+

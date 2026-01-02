@@ -1,0 +1,9 @@
+{
+  "id": "autodeployhelper",
+  "toolName": "autodeployhelper",
+  "description": "CLI tool that processes deploy.csv to prepare deployment batches. Supports PRODUCTION_CORE (Tues), PRODUCTION_MICROSRVC (Thu), and STAGING (Fri) modes. Filters CSV rows and prepares deployment metadata.",
+  "commandFormat": "python3 deployEnviron.py deploy <OPERATION> [--source <csvfile>] [--auth <patfile>] [--dryrun]",
+  "parameters": "Operations: PRODUCTION_CORE, PRODUCTION_MICROSRVC, STAGING; --source: CSV file; --auth: GitHub PAT; --dryrun: simulate only",
+  "examples": "CMD: python3 deployEnviron.py deploy PRODUCTION_CORE --source deploy.csv",
+  "keywords": ["deploy", "csv", "production", "staging", "microservices", "release", "pipeline"]
+}

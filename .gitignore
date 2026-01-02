@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 [Nn]obuilds/update-setup/*.bin
+*.env
 
 # Visual Studio Code
 .vscode

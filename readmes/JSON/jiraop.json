@@ -1,0 +1,9 @@
+{
+  "id": "jiraop",
+  "toolName": "jiraop",
+  "description": "CLI tool that manages Jira tickets using JQL. Supports transitions, user search, filter management, and work item operations. Used for readiness checks and deployment workflows.",
+  "commandFormat": "jiraop transit --query \"<JQL>\" --to \"<TargetState>\" [--dryrun]",
+  "parameters": "status: ('Ready for Production' | 'Ready for Stage'), fixVersion: 'YYYY.MM.DD.01', --to: ('Deployed' | 'Stage'), --dryrun: optional",
+  "examples": "CMD: jiraop transit --query \"status IN ('Ready for Production') AND fixVersion = '2025.11.09.01'\" --to \"Deployed\"",
+  "keywords": ["jira", "transition", "deploy", "fixversion", "jql", "readiness", "workflow"]
+}
